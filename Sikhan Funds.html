@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sikhan Funds Tracker</title>
+<style>
+body {
+background-color: #000;
+color: #fff;
+font-family: Arial, sans-serif;
+padding: 20px;
+}
+input, textarea {
+width: 100%;
+padding: 8px;
+margin-top: 5px;
+background-color: #222;
+color: white;
+border: 1px solid #555;
+}
+button {
+background-color: #444;
+color: white;
+border: none;
+padding: 10px 20px;
+margin-top: 10px;
+cursor: pointer;
+}
+table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 30px;
+}
+th, td {
+border: 1px solid #666;
+padding: 10px;
+text-align: center;
+}
+th {
+background-color: #111;
+}
+</style>
+</head>
+<body>
+
+<h1>Sikhan Funds - Trade Entry</h1>
+
+<form id="tradeForm">
+<label>Ticker:<input type="text" name="Ticker" required></label><br>
+<label>Entry Date:<input type="date" name="Entry Date" required></label><br>
+<label>Entry Price:<input type="number" name="Entry Price" step="0.01" required></label><br>
+<label>Stop Price:<input type="number" name="Stop Price" step="0.01" required></label><br>
+<label>Target Price:<input type="number" name="Target Price" step="0.01" required></label><br>
+<label>Risk Reward:<input type="text" name="Risk Reward" readonly></label><br>
+<label>Notes:<textarea name="Notes" rows="3"></textarea></label><br>
+<button type="submit">Submit Trade</button>
+<button type="button" onclick="loadData()">Load Existing Trades</button>
+</form>
+
+<h2>Previous Trades</h2>
+<table id="tradeTable" style="display: none;">
+<thead id="tableHead"></thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<script>
+const scriptURL = 'https://script.google.com/macros/s/AKfycbxhKBY4PNarJSmFN7IKXilBZnIzOvBvTIEfCIEvwPaKp01L0m5gf0Mr0eD9nR2pXmDIfg/exec'; // Replace with your deployed Apps Script URL
+
+const form = document.getElementById('tradeForm');
+const entryPriceInput = form.elements['Entry Price'];
+const stopPriceInput = form.elements['Stop Price'];
+const targetPriceInput = form.elements['Target Price'];
+const rrInput = form.elements['Risk Reward'];
+
+// Auto-calculate Risk Reward
+[entryPriceInput, stopPriceInput, targetPriceInput].forEach(input => {
+input.addEventListener('input', () => {
+const entry = parseFloat(entryPriceInput.value);
+const stop = parseFloat(stopPriceInput.value);
+const target = parseFloat(targetPriceInput.value);
+if (!isNaN(entry) && !isNaN(stop) && !isNaN(target) && (entry - stop) !== 0) {
+const rr = ((target - entry) / (entry - stop)).toFixed(2);
+rrInput.value = rr;
+} else {
+rrInput.value = '';
+}
+});
+});
+
+// Submit form
+form.addEventListener('submit', e => {
+e.preventDefault();
+const formData = new FormData(form);
+fetch(scriptURL, {
+method: 'POST',
+body: formData
+})
+.then(res => res.json())
+.then(data => {
+alert('Trade submitted!');
+form.reset();
+rrInput.value = '';
+})
+.catch(err => alert('Error submitting trade: ' + err));
+});
+
+// Load data from Google Sheet
+function loadData() {
+fetch(scriptURL)
+.then(res => res.json())
+.then(records => {
+const table = document.getElementById('tradeTable');
+const thead = document.getElementById('tableHead');
+const tbody = document.getElementById('tableBody');
+thead.innerHTML = '';
+tbody.innerHTML = '';
+if (records.length === 0) {
+table.style.display = 'none';
+return;
+}
+const headers = Object.keys(records[0]);
+const headerRow = document.createElement('tr');
+headers.forEach(h => {
+const th = document.createElement('th');
+th.textContent = h;
+headerRow.appendChild(th);
+});
+thead.appendChild(headerRow);
+records.forEach(row => {
+const tr = document.createElement('tr');
+headers.forEach(h => {
+const td = document.createElement('td');
+td.textContent = row[h];
+tr.appendChild(td);
+});
+tbody.appendChild(tr);
+});
+table.style.display = 'table';
+})
+.catch(err => alert('Error loading data: ' + err));
+}
+</script>
+
+</body>
+</html>
